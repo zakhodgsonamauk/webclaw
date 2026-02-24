@@ -60,7 +60,8 @@ export type BridgeMethod =
   | 'reload'
   | 'waitForNavigation'
   | 'scrollPage'
-  | 'dropFiles';
+  | 'dropFiles'
+  | 'readConsoleLogs';
 
 /** Chunked message for large payloads (>1MB Native Messaging limit) */
 export interface ChunkedMessage {

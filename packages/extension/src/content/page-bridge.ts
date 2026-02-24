@@ -6,6 +6,10 @@
 
 const CHANNEL = 'webclaw-page-bridge';
 
+// Note: Console interception is handled by console-capture.ts which injects
+// an inline script at document_start (before any page JS runs). The page bridge
+// only handles WebMCP discovery and invocation.
+
 // Listen for discovery requests from content script
 window.addEventListener('message', async (event) => {
   if (event.source !== window) return;

@@ -10,6 +10,21 @@
 import { takeSnapshot, resolveRef } from './snapshot-engine';
 import { clickElement, hoverElement, typeText, selectOption, dropFiles, invokeWebMCPTool } from './action-executor';
 import { discoverWebMCPTools, getCachedTools, invokeSynthesizedTool } from './webmcp-discovery';
+import type { ConsoleLogEntry } from 'webclaw-shared';
+
+// Console log buffer is maintained by console-capture.ts (runs at document_start).
+// It stores entries on window.__webclawConsoleBuffer so we can read them here.
+interface BufferedEntry {
+  level: string;
+  message: string;
+  timestamp: number;
+  stack?: string;
+}
+
+/** Get the shared console buffer populated by the early capture script */
+function getConsoleBuffer(): BufferedEntry[] {
+  return (window as unknown as { __webclawConsoleBuffer?: BufferedEntry[] }).__webclawConsoleBuffer ?? [];
+}
 
 // Inject page bridge script into MAIN world for WebMCP access
 injectPageBridge();
@@ -121,6 +136,32 @@ async function handleAction(message: {
         scrolledBy: scrollY,
         scrollPosition: { x: window.scrollX, y: window.scrollY },
       };
+    }
+
+    case 'readConsoleLogs': {
+      const level = message.level as ConsoleLogEntry['level'] | undefined;
+      const maxEntries = message.maxEntries as number | undefined;
+      const clear = message.clear as boolean | undefined;
+
+      const consoleBuffer = getConsoleBuffer();
+      let logs = [...consoleBuffer];
+
+      if (level) {
+        logs = logs.filter((entry) => entry.level === level);
+      }
+
+      if (maxEntries && maxEntries > 0) {
+        logs = logs.slice(-maxEntries);
+      }
+
+      const totalBuffered = consoleBuffer.length;
+
+      if (clear) {
+        consoleBuffer.length = 0;
+      }
+
+      logActivity('readConsoleLogs', { count: logs.length, level: level ?? 'all', cleared: !!clear });
+      return { logs, totalBuffered };
     }
 
     case 'scrollToElement': {

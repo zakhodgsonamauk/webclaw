@@ -26,11 +26,26 @@ describe('manifest.json MV3 compliance', () => {
 
   it('has content scripts configuration', () => {
     expect(manifest.content_scripts).toBeInstanceOf(Array);
-    expect(manifest.content_scripts.length).toBeGreaterThan(0);
-    const cs = manifest.content_scripts[0];
-    expect(cs.matches).toContain('<all_urls>');
-    expect(cs.js).toBeInstanceOf(Array);
-    expect(cs.run_at).toBe('document_idle');
+    expect(manifest.content_scripts.length).toBeGreaterThanOrEqual(3);
+
+    // MAIN world console capture script runs at document_start
+    const mainWorldCs = manifest.content_scripts[0];
+    expect(mainWorldCs.matches).toContain('<all_urls>');
+    expect(mainWorldCs.js).toContain('content/console-capture-main.js');
+    expect(mainWorldCs.run_at).toBe('document_start');
+    expect(mainWorldCs.world).toBe('MAIN');
+
+    // ISOLATED world console buffer runs at document_start
+    const isolatedCs = manifest.content_scripts[1];
+    expect(isolatedCs.matches).toContain('<all_urls>');
+    expect(isolatedCs.js).toContain('content/console-capture.js');
+    expect(isolatedCs.run_at).toBe('document_start');
+
+    // Main content script runs at document_idle
+    const mainCs = manifest.content_scripts[2];
+    expect(mainCs.matches).toContain('<all_urls>');
+    expect(mainCs.js).toContain('content/content-script.js');
+    expect(mainCs.run_at).toBe('document_idle');
   });
 
   it('has required permissions', () => {

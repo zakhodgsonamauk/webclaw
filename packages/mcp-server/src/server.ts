@@ -1,7 +1,7 @@
 /**
  * WebClaw MCP Server.
  *
- * Exposes 19 browser interaction tools via MCP protocol (stdio transport).
+ * Exposes 20 browser interaction tools via MCP protocol (stdio transport).
  * Communicates with the Chrome Extension via WebSocket.
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -534,6 +534,65 @@ export function createWebClawServer(options: { wsClient: WebSocketClient }): Mcp
       const fileNames = files.map((f) => f.name).join(', ');
       return {
         content: [{ type: 'text', text: `Dropped ${files.length} file(s) onto ${ref}: ${fileNames}` }],
+      };
+    }
+  );
+
+  // --- Tool: console_logs ---
+  server.tool(
+    'console_logs',
+    'Read captured browser console logs (console.log, console.error, console.warn, etc.) from the current page. Logs are buffered since page load.',
+    {
+      tabId: z.number().int().optional().describe('Target tab ID (defaults to active tab)'),
+      level: z.enum(['log', 'error', 'warn', 'info', 'debug']).optional().describe('Filter by log level'),
+      maxEntries: z.number().int().positive().optional().describe('Maximum number of log entries to return (most recent)'),
+      clear: z.boolean().optional().describe('Clear the log buffer after reading (default: false)'),
+    },
+    async ({ tabId, level, maxEntries, clear }) => {
+      const response = await requestWithSessionTab('readConsoleLogs', {
+        level,
+        maxEntries,
+        clear,
+      }, tabId);
+      if (response.type === 'error') {
+        return formatErrorResponse(response.payload);
+      }
+      const result = response.payload as {
+        logs: Array<{ level: string; message: string; timestamp: number; stack?: string }>;
+        totalBuffered: number;
+      };
+
+      if (result.logs.length === 0) {
+        return {
+          content: [{
+            type: 'text',
+            text: `No console logs captured${level ? ` at level "${level}"` : ''}. (${result.totalBuffered} total in buffer)`,
+          }],
+        };
+      }
+
+      const LEVEL_PREFIX: Record<string, string> = {
+        error: '[ERROR]',
+        warn: '[WARN] ',
+        info: '[INFO] ',
+        log: '[LOG]  ',
+        debug: '[DEBUG]',
+      };
+
+      const formatted = result.logs.map((entry) => {
+        const prefix = LEVEL_PREFIX[entry.level] ?? `[${entry.level.toUpperCase()}]`;
+        const time = new Date(entry.timestamp).toISOString().slice(11, 23);
+        let line = `${time} ${prefix} ${entry.message}`;
+        if (entry.stack) {
+          line += `\n         ${entry.stack.split('\n').join('\n         ')}`;
+        }
+        return line;
+      }).join('\n');
+
+      const header = `Console logs (${result.logs.length} entries${level ? `, filtered: ${level}` : ''}, ${result.totalBuffered} total in buffer${clear ? ', buffer cleared' : ''}):\n`;
+
+      return {
+        content: [{ type: 'text', text: header + formatted }],
       };
     }
   );

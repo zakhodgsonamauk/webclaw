@@ -135,3 +135,19 @@ export interface DropFilesParams {
   files: DropFileEntry[];
   tabId?: number;
 }
+
+/** A single captured console log entry */
+export interface ConsoleLogEntry {
+  level: 'log' | 'error' | 'warn' | 'info' | 'debug';
+  message: string;
+  timestamp: number;
+  stack?: string;
+}
+
+/** Parameters for read_console_logs tool */
+export interface ReadConsoleLogsParams {
+  tabId?: number;
+  level?: 'log' | 'error' | 'warn' | 'info' | 'debug';
+  maxEntries?: number;
+  clear?: boolean;
+}

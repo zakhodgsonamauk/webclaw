@@ -429,6 +429,54 @@ describe('MessageRouter', () => {
       });
     });
 
+    it('routes readConsoleLogs to content script', async () => {
+      (mockTabManager.sendToContentScript as ReturnType<typeof vi.fn>).mockResolvedValue({
+        logs: [
+          { level: 'error', message: 'Something failed', timestamp: 1708000000000 },
+        ],
+        totalBuffered: 5,
+      });
+
+      const result = await router.handleBridgeRequest({
+        id: 'req-console',
+        type: 'request',
+        method: 'readConsoleLogs',
+        payload: { level: 'error', maxEntries: 10, clear: true },
+        timestamp: Date.now(),
+      });
+
+      expect(result.type).toBe('response');
+      expect(mockTabManager.sendToContentScript).toHaveBeenCalledWith(1, {
+        action: 'readConsoleLogs',
+        level: 'error',
+        maxEntries: 10,
+        clear: true,
+      });
+    });
+
+    it('routes readConsoleLogs with no filters', async () => {
+      (mockTabManager.sendToContentScript as ReturnType<typeof vi.fn>).mockResolvedValue({
+        logs: [],
+        totalBuffered: 0,
+      });
+
+      const result = await router.handleBridgeRequest({
+        id: 'req-console-empty',
+        type: 'request',
+        method: 'readConsoleLogs',
+        payload: {},
+        timestamp: Date.now(),
+      });
+
+      expect(result.type).toBe('response');
+      expect(mockTabManager.sendToContentScript).toHaveBeenCalledWith(1, {
+        action: 'readConsoleLogs',
+        level: undefined,
+        maxEntries: undefined,
+        clear: undefined,
+      });
+    });
+
     it('classifies TAB_NOT_FOUND errors', async () => {
       mockTabsRemove.mockRejectedValue(
         new Error('No tab with id: 999')

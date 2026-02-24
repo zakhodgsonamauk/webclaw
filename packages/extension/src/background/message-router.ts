@@ -22,6 +22,7 @@ import type {
   WaitForNavigationParams,
   ScrollPageParams,
   DropFilesParams,
+  ReadConsoleLogsParams,
 } from 'webclaw-shared';
 import { createResponse, createError } from 'webclaw-shared';
 import type { TabManager } from './tab-manager';
@@ -102,6 +103,9 @@ export class MessageRouter {
           break;
         case 'dropFiles':
           result = await this.handleDropFiles(payload as DropFilesParams);
+          break;
+        case 'readConsoleLogs':
+          result = await this.handleReadConsoleLogs(payload as ReadConsoleLogsParams);
           break;
         case 'ping':
           result = { pong: true, timestamp: Date.now() };
@@ -418,6 +422,16 @@ export class MessageRouter {
       action: 'dropFiles',
       ref: params.ref,
       files: params.files,
+    });
+  }
+
+  private async handleReadConsoleLogs(params: ReadConsoleLogsParams): Promise<unknown> {
+    const tabId = await this.tabManager.getTargetTabId(params.tabId);
+    return this.tabManager.sendToContentScript(tabId, {
+      action: 'readConsoleLogs',
+      level: params.level,
+      maxEntries: params.maxEntries,
+      clear: params.clear,
     });
   }
 

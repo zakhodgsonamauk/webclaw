@@ -10,7 +10,7 @@ import { resolve } from 'path';
  * into the entry file.
  */
 function inlineContentScriptChunks(): Plugin {
-  const CONTENT_ENTRIES = ['content/content-script.js', 'content/page-bridge.js'];
+  const CONTENT_ENTRIES = ['content/content-script.js', 'content/page-bridge.js', 'content/console-capture.js', 'content/console-capture-main.js'];
 
   return {
     name: 'inline-content-script-chunks',
@@ -77,6 +77,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         'background/service-worker': resolve(__dirname, 'src/background/service-worker.ts'),
+        'content/console-capture': resolve(__dirname, 'src/content/console-capture.ts'),
+        'content/console-capture-main': resolve(__dirname, 'src/content/console-capture-main.ts'),
         'content/content-script': resolve(__dirname, 'src/content/content-script.ts'),
         'content/page-bridge': resolve(__dirname, 'src/content/page-bridge.ts'),
         'sidepanel/sidepanel': resolve(__dirname, 'src/sidepanel/sidepanel.html'),
